@@ -6,10 +6,15 @@ import helmet from 'helmet';
 import * as compression from 'compression';
 
 import { AppModule } from './app.module';
+import { RedisIoAdapter } from './sockets/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const config = app.get(ConfigService);
+
+  const redisAdapter = new RedisIoAdapter(app);
+  await redisAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisAdapter);
 
   app.use(helmet());
   app.use(compression());
