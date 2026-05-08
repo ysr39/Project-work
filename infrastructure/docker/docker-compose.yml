@@ -1,13 +1,16 @@
 version: '3.9'
 
+# ── Local development stack ────────────────────────────────────────────────────
+# Usage: docker compose -f infrastructure/docker/docker-compose.yml up -d
+
 services:
   postgres:
     image: postgis/postgis:15-3.4
     container_name: taxipool_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: taxipool
-      POSTGRES_USER: postgres
+      POSTGRES_DB:       taxipool
+      POSTGRES_USER:     postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - '5432:5432'
@@ -24,7 +27,7 @@ services:
     image: redis:7.2-alpine
     container_name: taxipool_redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
       - '6379:6379'
     volumes:
@@ -39,10 +42,14 @@ services:
     build:
       context: ../../apps/api
       dockerfile: Dockerfile
+      target: deps          # stop at deps stage for fast hot-reload in dev
     container_name: taxipool_api
     restart: unless-stopped
     env_file:
       - ../../apps/api/.env
+    environment:
+      DATABASE_HOST: postgres
+      REDIS_HOST:    redis
     ports:
       - '3000:3000'
     depends_on:
@@ -53,6 +60,19 @@ services:
     volumes:
       - ../../apps/api:/app
       - /app/node_modules
+    command: npm run dev
+
+  admin:
+    build:
+      context: ../../apps/admin
+      dockerfile: Dockerfile
+      target: builder
+    container_name: taxipool_admin
+    restart: unless-stopped
+    ports:
+      - '3001:80'
+    environment:
+      VITE_API_URL: http://localhost:3000
 
 volumes:
   postgres_data:

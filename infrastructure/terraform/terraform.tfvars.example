@@ -1,0 +1,35 @@
+# Copy to terraform.tfvars and fill in real values.
+# Never commit terraform.tfvars — it contains sensitive data.
+
+aws_region  = "ap-south-1"
+environment = "production"
+project     = "taxipool"
+
+# VPC
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["ap-south-1a", "ap-south-1b"]
+
+# ECS
+api_image         = "123456789012.dkr.ecr.ap-south-1.amazonaws.com/taxipool-production-api:latest"
+api_desired_count = 2
+api_cpu           = 512
+api_memory        = 1024
+
+# RDS
+db_instance_class = "db.t3.medium"
+db_name           = "taxipool"
+db_username       = "taxipool_admin"
+db_password       = "REPLACE_WITH_STRONG_PASSWORD"
+
+# ElastiCache
+redis_node_type = "cache.t3.micro"
+
+# Domains
+api_domain   = "api.taxipool.app"
+admin_domain = "admin.taxipool.app"
+
+# ACM Certificates
+# CloudFront certificate MUST be in us-east-1
+acm_certificate_arn          = "arn:aws:acm:us-east-1:123456789012:certificate/XXXXX"
+# ALB certificate must be in the same region as the ALB
+acm_certificate_arn_regional = "arn:aws:acm:ap-south-1:123456789012:certificate/XXXXX"

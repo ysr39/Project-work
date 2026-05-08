@@ -1,0 +1,178 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false   # never cancel in-flight deploys
+
+permissions:
+  id-token: write   # required for OIDC auth with AWS
+  contents: read
+
+env:
+  AWS_REGION:        ap-south-1
+  ECR_REPOSITORY:    taxipool-production-api
+  ECS_CLUSTER:       taxipool-production-cluster
+  ECS_SERVICE:       taxipool-production-api-service
+  ADMIN_S3_BUCKET:   ${{ secrets.ADMIN_S3_BUCKET }}
+  CF_DISTRIBUTION_ID: ${{ secrets.CF_DISTRIBUTION_ID }}
+
+jobs:
+  # ── Run CI checks first ─────────────────────────────────────────────────────
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  # ── Build & push API Docker image ───────────────────────────────────────────
+  deploy-api:
+    name: Deploy API → ECS Fargate
+    runs-on: ubuntu-latest
+    needs: ci
+    environment: production
+
+    outputs:
+      image: ${{ steps.build.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region:     ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push API image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context:  apps/api
+          push:     true
+          tags: |
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition taxipool-production-api \
+            --query taskDefinition \
+            > task-definition.json
+
+      - name: Update task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name:  api
+          image: >-
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition:  ${{ steps.task-def.outputs.task-definition }}
+          service:          ${{ env.ECS_SERVICE }}
+          cluster:          ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          codedeploy-appspec: false
+
+      - name: Notify deployment
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          echo "API deployment $STATUS for commit ${{ github.sha }}"
+
+  # ── Build & deploy Admin panel to S3 + CloudFront ──────────────────────────
+  deploy-admin:
+    name: Deploy Admin → S3 + CloudFront
+    runs-on: ubuntu-latest
+    needs: ci
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region:     ${{ env.AWS_REGION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/admin/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/admin
+        run: npm ci
+
+      - name: Build admin panel
+        working-directory: apps/admin
+        env:
+          VITE_API_URL: https://api.taxipool.app
+        run: npm run build
+
+      # Upload hashed assets with long-lived cache
+      - name: Upload assets to S3
+        run: |
+          aws s3 sync apps/admin/dist/assets \
+            s3://${{ env.ADMIN_S3_BUCKET }}/assets \
+            --cache-control "public,max-age=31536000,immutable" \
+            --delete
+
+      # Upload everything else with short cache (index.html = no-cache)
+      - name: Upload root files to S3
+        run: |
+          aws s3 sync apps/admin/dist \
+            s3://${{ env.ADMIN_S3_BUCKET }} \
+            --exclude "assets/*" \
+            --cache-control "no-cache,no-store,must-revalidate" \
+            --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CF_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+  # ── Post-deploy smoke test ──────────────────────────────────────────────────
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    needs: [deploy-api, deploy-admin]
+
+    steps:
+      - name: Wait for ECS stabilization
+        run: sleep 30
+
+      - name: Health check — API
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.taxipool.app/api/health)
+          if [ "$STATUS" != "200" ]; then
+            echo "API health check failed with status $STATUS"
+            exit 1
+          fi
+          echo "API health check passed ($STATUS)"
+
+      - name: Health check — Admin
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://admin.taxipool.app)
+          if [ "$STATUS" != "200" ]; then
+            echo "Admin health check failed with status $STATUS"
+            exit 1
+          fi
+          echo "Admin health check passed ($STATUS)"

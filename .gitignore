@@ -1,10 +1,40 @@
 node_modules/
 dist/
-.env
-*.env.local
-coverage/
-.DS_Store
-*.log
-.nyc_output/
 build/
 *.js.map
+
+# Env files — never commit real secrets
+.env
+.env.production
+.env.local
+.env.*.local
+!.env.example
+!.env.production.example
+
+# Terraform state and secrets
+infrastructure/terraform/.terraform/
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.*
+infrastructure/terraform/.terraform.lock.hcl
+infrastructure/terraform/terraform.tfvars
+
+# Logs
+*.log
+.nyc_output/
+
+# Testing
+coverage/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# Flutter
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/build/
+apps/mobile/android/.gradle/
+apps/mobile/ios/Pods/

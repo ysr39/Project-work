@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── API: lint + test + build ────────────────────────────────────────────────
+  api:
+    name: API — Lint / Test / Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:15-3.4
+        env:
+          POSTGRES_DB:       taxipool_test
+          POSTGRES_USER:     postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7.2-alpine
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=3s
+          --health-retries=5
+        ports:
+          - 6379:6379
+
+    env:
+      NODE_ENV:          test
+      DATABASE_HOST:     localhost
+      DATABASE_PORT:     5432
+      DATABASE_NAME:     taxipool_test
+      DATABASE_USER:     postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_SSL:      false
+      REDIS_HOST:        localhost
+      REDIS_PORT:        6379
+      JWT_SECRET:        ci-test-secret
+      JWT_REFRESH_SECRET: ci-test-refresh-secret
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_WEBHOOK_SECRET: whsec_ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: npm ci
+
+      - name: Lint
+        working-directory: apps/api
+        run: npm run lint
+
+      - name: Unit tests
+        working-directory: apps/api
+        run: npm test -- --coverage --passWithNoTests
+
+      - name: Build
+        working-directory: apps/api
+        run: npm run build
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage
+          path: apps/api/coverage
+          retention-days: 7
+
+  # ── Admin: lint + build ─────────────────────────────────────────────────────
+  admin:
+    name: Admin — Lint / Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/admin/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/admin
+        run: npm ci
+
+      - name: Type check
+        working-directory: apps/admin
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: apps/admin
+        env:
+          VITE_API_URL: https://api.taxipool.app
+        run: npm run build
+
+  # ── Docker build smoke test ─────────────────────────────────────────────────
+  docker-build:
+    name: Docker Build Smoke Test
+    runs-on: ubuntu-latest
+    needs: [api, admin]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v5
+        with:
+          context:  apps/api
+          push:     false
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+
+      - name: Build Admin image
+        uses: docker/build-push-action@v5
+        with:
+          context:  apps/admin
+          push:     false
+          build-args: VITE_API_URL=https://api.taxipool.app
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
