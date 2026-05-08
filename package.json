@@ -1,0 +1,16 @@
+{
+  "name": "taxi-pool",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "packages/*"
+  ],
+  "scripts": {
+    "api:dev": "yarn workspace @taxi-pool/api dev",
+    "api:build": "yarn workspace @taxi-pool/api build",
+    "api:test": "yarn workspace @taxi-pool/api test",
+    "docker:up": "docker-compose -f infrastructure/docker/docker-compose.yml up -d",
+    "docker:down": "docker-compose -f infrastructure/docker/docker-compose.yml down"
+  }
+}

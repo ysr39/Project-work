@@ -1,0 +1,42 @@
+export enum UserRole {
+  RIDER = 'RIDER',
+  DRIVER = 'DRIVER',
+  ADMIN = 'ADMIN',
+}
+
+export enum UserStatus {
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  BANNED = 'BANNED',
+  PENDING_VERIFICATION = 'PENDING_VERIFICATION',
+}
+
+export enum DriverApprovalStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  SUSPENDED = 'SUSPENDED',
+}
+
+export enum DocumentType {
+  LICENSE_FRONT = 'LICENSE_FRONT',
+  LICENSE_BACK = 'LICENSE_BACK',
+  VEHICLE_REGISTRATION = 'VEHICLE_REGISTRATION',
+  INSURANCE = 'INSURANCE',
+  TAX_ID = 'TAX_ID',
+  PROFILE_PHOTO = 'PROFILE_PHOTO',
+}
+
+export enum DocumentStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export enum VehicleType {
+  SEDAN = 'SEDAN',
+  SUV = 'SUV',
+  HATCHBACK = 'HATCHBACK',
+  MINIVAN = 'MINIVAN',
+  AUTO = 'AUTO',
+}
