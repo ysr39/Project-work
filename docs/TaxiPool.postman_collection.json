@@ -1,0 +1,650 @@
+{
+  "info": {
+    "_postman_id": "taxipool-v1-collection",
+    "name": "TaxiPool API",
+    "description": "Complete API collection for the TaxiPool ride-sharing platform.\n\n**Setup**:\n1. Set the `baseUrl` variable to your API host (default: `http://localhost:3000/api/v1`)\n2. Run the **Auth / Verify OTP** request — it auto-sets `accessToken` and `refreshToken`\n3. All other requests use `{{accessToken}}` automatically\n\n**Variables**: `baseUrl`, `accessToken`, `refreshToken`, `tripId`, `passengerId`, `paymentId`, `driverId`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",      "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "accessToken",  "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "phone",        "value": "+919876543210",                "type": "string" },
+    { "key": "tripId",       "value": "",                             "type": "string" },
+    { "key": "passengerId",  "value": "",                             "type": "string" },
+    { "key": "paymentId",    "value": "",                             "type": "string" },
+    { "key": "driverId",     "value": "",                             "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/send-otp", "host": ["{{baseUrl}}"], "path": ["auth","send-otp"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{phone}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP (Rider)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const body = pm.response.json();",
+                "const data = body.data ?? body;",
+                "if (data.accessToken)  pm.collectionVariables.set('accessToken',  data.accessToken);",
+                "if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+                "pm.test('status 200', () => pm.response.to.have.status(200));",
+                "pm.test('has accessToken', () => pm.expect(data.accessToken).to.be.a('string'));"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/verify-otp", "host": ["{{baseUrl}}"], "path": ["auth","verify-otp"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{phone}}\",\n  \"otp\":   \"000000\",\n  \"role\":  \"RIDER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP (Driver)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const body = pm.response.json();",
+                "const data = body.data ?? body;",
+                "if (data.accessToken)  pm.collectionVariables.set('accessToken',  data.accessToken);",
+                "if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+                "if (data.user?.id)     pm.collectionVariables.set('driverId', data.user.id);"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/verify-otp", "host": ["{{baseUrl}}"], "path": ["auth","verify-otp"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543211\",\n  \"otp\":   \"000000\",\n  \"role\":  \"DRIVER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const body = pm.response.json();",
+                "const data = body.data ?? body;",
+                "if (data.accessToken)  pm.collectionVariables.set('accessToken',  data.accessToken);",
+                "if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth","refresh"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth","logout"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users","me"] }
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users","me"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Priya Sharma\",\n  \"email\":    \"priya@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List All Users (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["users"],
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Drivers",
+      "item": [
+        {
+          "name": "Onboard Driver",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/drivers/onboard", "host": ["{{baseUrl}}"], "path": ["drivers","onboard"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"licenseNumber\":      \"KA01 20240001\",\n  \"licenseExpiry\":      \"2028-06-30\",\n  \"vehicleMake\":        \"Maruti\",\n  \"vehicleModel\":       \"Swift\",\n  \"vehicleYear\":        2022,\n  \"vehicleColor\":       \"White\",\n  \"plateNumber\":        \"KA05AB1234\",\n  \"vehicleType\":        \"SEDAN\",\n  \"registrationNumber\": \"REG20220001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Driver Profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/drivers/me", "host": ["{{baseUrl}}"], "path": ["drivers","me"] }
+          }
+        },
+        {
+          "name": "Go Online",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/drivers/me/status", "host": ["{{baseUrl}}"], "path": ["drivers","me","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"isOnline\": true\n}" }
+          }
+        },
+        {
+          "name": "Go Offline",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/drivers/me/status", "host": ["{{baseUrl}}"], "path": ["drivers","me","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"isOnline\": false\n}" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Trips",
+      "item": [
+        {
+          "name": "Estimate Fare",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/trips/estimate", "host": ["{{baseUrl}}"], "path": ["trips","estimate"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\":       \"POOL\",\n  \"pickupAddress\":  \"MG Road, Bangalore\",\n  \"pickupLat\":      12.9716,\n  \"pickupLng\":      77.5946,\n  \"dropoffAddress\": \"Whitefield, Bangalore\",\n  \"dropoffLat\":     12.9698,\n  \"dropoffLng\":     77.7500,\n  \"seatsRequested\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Trip (Pool)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const body = pm.response.json();",
+                "const data = body.data ?? body;",
+                "const tripId = data.trip?.id ?? data.id;",
+                "const paxId  = data.passenger?.id;",
+                "if (tripId) pm.collectionVariables.set('tripId',      tripId);",
+                "if (paxId)  pm.collectionVariables.set('passengerId', paxId);"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/trips", "host": ["{{baseUrl}}"], "path": ["trips"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\":       \"POOL\",\n  \"pickupAddress\":  \"MG Road, Bangalore\",\n  \"pickupLat\":      12.9716,\n  \"pickupLng\":      77.5946,\n  \"dropoffAddress\": \"Whitefield, Bangalore\",\n  \"dropoffLat\":     12.9698,\n  \"dropoffLng\":     77.7500,\n  \"seatsRequested\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Trip (Solo)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/trips", "host": ["{{baseUrl}}"], "path": ["trips"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\":       \"SOLO\",\n  \"pickupAddress\":  \"Koramangala, Bangalore\",\n  \"pickupLat\":      12.9352,\n  \"pickupLng\":      77.6245,\n  \"dropoffAddress\": \"Indiranagar, Bangalore\",\n  \"dropoffLat\":     12.9784,\n  \"dropoffLng\":     77.6408,\n  \"seatsRequested\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Trip by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/trips/{{tripId}}", "host": ["{{baseUrl}}"], "path": ["trips","{{tripId}}"] }
+          }
+        },
+        {
+          "name": "Update Trip Status → MATCHED",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/trips/{{tripId}}/status", "host": ["{{baseUrl}}"], "path": ["trips","{{tripId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"MATCHED\"\n}" }
+          }
+        },
+        {
+          "name": "Update Trip Status → ARRIVED",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/trips/{{tripId}}/status", "host": ["{{baseUrl}}"], "path": ["trips","{{tripId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"ARRIVED\"\n}" }
+          }
+        },
+        {
+          "name": "Update Trip Status → IN_PROGRESS",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/trips/{{tripId}}/status", "host": ["{{baseUrl}}"], "path": ["trips","{{tripId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}" }
+          }
+        },
+        {
+          "name": "Update Trip Status → COMPLETED",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/trips/{{tripId}}/status", "host": ["{{baseUrl}}"], "path": ["trips","{{tripId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"COMPLETED\"\n}" }
+          }
+        },
+        {
+          "name": "Cancel Trip",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/trips/{{tripId}}", "host": ["{{baseUrl}}"], "path": ["trips","{{tripId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Changed plans\"\n}" }
+          }
+        },
+        {
+          "name": "Rider Trip History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/trips/history?page=1&limit=10",
+              "host": ["{{baseUrl}}"], "path": ["trips","history"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }]
+            }
+          }
+        },
+        {
+          "name": "Driver Trip History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/trips/driver/history?page=1&limit=10",
+              "host": ["{{baseUrl}}"], "path": ["trips","driver","history"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Pooling Engine",
+      "item": [
+        {
+          "name": "Request Pool Ride",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/pooling/request", "host": ["{{baseUrl}}"], "path": ["pooling","request"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\":       \"POOL\",\n  \"pickupAddress\":  \"MG Road, Bangalore\",\n  \"pickupLat\":      12.9716,\n  \"pickupLng\":      77.5946,\n  \"dropoffAddress\": \"Whitefield, Bangalore\",\n  \"dropoffLat\":     12.9698,\n  \"dropoffLng\":     77.7500,\n  \"seatsRequested\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Estimate Fare (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/pooling/estimate", "host": ["{{baseUrl}}"], "path": ["pooling","estimate"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\":       \"POOL\",\n  \"pickupLat\":      12.9716,\n  \"pickupLng\":      77.5946,\n  \"dropoffLat\":     12.9698,\n  \"dropoffLng\":     77.7500,\n  \"seatsRequested\": 1\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment Intent",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const body = pm.response.json();",
+                "const data = body.data ?? body;",
+                "if (data.paymentId) pm.collectionVariables.set('paymentId', data.paymentId);"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/payments/intent", "host": ["{{baseUrl}}"], "path": ["payments","intent"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripPassengerId\": \"{{passengerId}}\",\n  \"paymentMethod\":   \"CARD\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Payment History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/payments/history?page=1&limit=10",
+              "host": ["{{baseUrl}}"], "path": ["payments","history"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }]
+            }
+          }
+        },
+        {
+          "name": "Refund Payment (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/payments/admin/{{paymentId}}/refund", "host": ["{{baseUrl}}"], "path": ["payments","admin","{{paymentId}}","refund"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amountRupees\": 50,\n  \"reason\":       \"Driver no-show\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List All Payments (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/payments/admin/all?page=1&limit=20&status=CAPTURED",
+              "host": ["{{baseUrl}}"], "path": ["payments","admin","all"],
+              "query": [
+                { "key": "page",   "value": "1" },
+                { "key": "limit",  "value": "20" },
+                { "key": "status", "value": "CAPTURED" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/payments/wallet/balance", "host": ["{{baseUrl}}"], "path": ["payments","wallet","balance"] }
+          }
+        },
+        {
+          "name": "Top Up Wallet",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/payments/wallet/topup", "host": ["{{baseUrl}}"], "path": ["payments","wallet","topup"] },
+            "body": { "mode": "raw", "raw": "{\n  \"amountRupees\": 500\n}" }
+          }
+        },
+        {
+          "name": "Transaction History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/payments/wallet/transactions?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["payments","wallet","transactions"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Driver Payouts",
+      "item": [
+        {
+          "name": "Initiate Connect Onboarding",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/payments/connect/onboard", "host": ["{{baseUrl}}"], "path": ["payments","connect","onboard"] },
+            "body": { "mode": "raw", "raw": "{\n  \"baseUrl\": \"https://taxipool.app\"\n}" }
+          }
+        },
+        {
+          "name": "Get Connect Status",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/payments/connect/status", "host": ["{{baseUrl}}"], "path": ["payments","connect","status"] }
+          }
+        },
+        {
+          "name": "My Payout History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/payments/payouts/mine?page=1&limit=10",
+              "host": ["{{baseUrl}}"], "path": ["payments","payouts","mine"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }]
+            }
+          }
+        },
+        {
+          "name": "My Earnings Summary",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/payments/payouts/mine/summary", "host": ["{{baseUrl}}"], "path": ["payments","payouts","mine","summary"] }
+          }
+        },
+        {
+          "name": "Trigger Manual Payout (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/payments/admin/payouts/driver/{{driverId}}", "host": ["{{baseUrl}}"], "path": ["payments","admin","payouts","driver","{{driverId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"periodStart\": \"2025-01-01\",\n  \"periodEnd\":   \"2025-01-07\"\n}" }
+          }
+        },
+        {
+          "name": "Retry Failed Payouts (Admin)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/payments/admin/payouts/retry-failed", "host": ["{{baseUrl}}"], "path": ["payments","admin","payouts","retry-failed"] }
+          }
+        },
+        {
+          "name": "List All Payouts (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/payments/admin/payouts?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["payments","admin","payouts"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "Driver Earnings Summary (Admin)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/payments/admin/payouts/driver/{{driverId}}/summary", "host": ["{{baseUrl}}"], "path": ["payments","admin","payouts","driver","{{driverId}}","summary"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Dashboard KPIs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/admin/dashboard", "host": ["{{baseUrl}}"], "path": ["admin","dashboard"] }
+          }
+        },
+        {
+          "name": "List All Trips",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/trips?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["admin","trips"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "Pending Driver Approvals",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/drivers/pending?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["admin","drivers","pending"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "Approve Driver",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{baseUrl}}/admin/drivers/{{driverId}}/approve", "host": ["{{baseUrl}}"], "path": ["admin","drivers","{{driverId}}","approve"] }
+          }
+        },
+        {
+          "name": "Reject Driver",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/admin/drivers/{{driverId}}/reject", "host": ["{{baseUrl}}"], "path": ["admin","drivers","{{driverId}}","reject"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Document mismatch\"\n}" }
+          }
+        },
+        {
+          "name": "Suspend User",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{baseUrl}}/admin/users/:userId/suspend", "host": ["{{baseUrl}}"], "path": ["admin","users",":userId","suspend"], "variable": [{ "key": "userId", "value": "" }] }
+          }
+        },
+        {
+          "name": "Ban User",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{baseUrl}}/admin/users/:userId/ban", "host": ["{{baseUrl}}"], "path": ["admin","users",":userId","ban"], "variable": [{ "key": "userId", "value": "" }] }
+          }
+        },
+        {
+          "name": "Reinstate User",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{baseUrl}}/admin/users/:userId/reinstate", "host": ["{{baseUrl}}"], "path": ["admin","users",":userId","reinstate"], "variable": [{ "key": "userId", "value": "" }] }
+          }
+        },
+        {
+          "name": "Revenue Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/reports/revenue?from=2025-01-01&to=2025-01-31",
+              "host": ["{{baseUrl}}"], "path": ["admin","reports","revenue"],
+              "query": [
+                { "key": "from", "value": "2025-01-01" },
+                { "key": "to",   "value": "2025-01-31" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    }
+
+  ]
+}
