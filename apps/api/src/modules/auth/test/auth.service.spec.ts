@@ -71,7 +71,7 @@ describe('AuthService', () => {
       otpService.generate.mockReturnValue('123456');
       otpService.store.mockResolvedValue(undefined);
 
-      const result = await service.sendOtp({ phone: '+919876543210' });
+      const result = await service.sendOtp({ phone: '+919876543210', role: UserRole.RIDER } as any);
 
       expect(otpService.generate).toHaveBeenCalledTimes(1);
       expect(otpService.store).toHaveBeenCalledWith('+919876543210', '123456');
@@ -166,7 +166,7 @@ describe('AuthService', () => {
         tokenHash: await bcrypt.hash('raw-token', 1),
         revokedAt: new Date(),
         expiresAt: new Date(Date.now() + 100_000),
-      } as RefreshToken;
+      } as unknown as RefreshToken;
       tokenRepo.find.mockResolvedValue([storedToken]);
 
       await expect(service.refresh('user-1', 'raw-token'))
@@ -179,7 +179,7 @@ describe('AuthService', () => {
         tokenHash: await bcrypt.hash('raw-token', 1),
         revokedAt: null,
         expiresAt: new Date(Date.now() - 1000),   // past
-      } as RefreshToken;
+      } as unknown as RefreshToken;
       tokenRepo.find.mockResolvedValue([storedToken]);
 
       await expect(service.refresh('user-1', 'raw-token'))
@@ -192,7 +192,7 @@ describe('AuthService', () => {
         tokenHash: await bcrypt.hash('raw-token', 1),
         revokedAt: null,
         expiresAt: new Date(Date.now() + 100_000),
-      } as RefreshToken;
+      } as unknown as RefreshToken;
       tokenRepo.find.mockResolvedValue([storedToken]);
       tokenRepo.update.mockResolvedValue({});
       const user = { id: 'user-1', role: UserRole.RIDER } as User;
@@ -205,7 +205,7 @@ describe('AuthService', () => {
       const result = await service.refresh('user-1', 'raw-token');
 
       expect(tokenRepo.update).toHaveBeenCalledWith('t-1', { revokedAt: expect.any(Date) });
-      expect(result.accessToken).toBe('new-access');
+      expect((result as any).accessToken).toBe('new-access');
     });
   });
 });

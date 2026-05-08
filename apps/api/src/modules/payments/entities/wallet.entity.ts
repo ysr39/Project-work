@@ -7,7 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-  Version,
+  VersionColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
@@ -31,7 +31,7 @@ export class Wallet {
   isFrozen: boolean;
 
   /** Optimistic lock version — prevents double-spend race conditions */
-  @Version()
+  @VersionColumn()
   version: number;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

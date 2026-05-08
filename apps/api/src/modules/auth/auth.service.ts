@@ -7,7 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 import { OtpService } from './otp.service';
@@ -46,7 +46,7 @@ export class AuthService {
     if (!valid) throw new BadRequestException('Invalid or expired OTP');
 
     let user = await this.userRepo.findOne({
-      where: { phone: dto.phone, deletedAt: null },
+      where: { phone: dto.phone, deletedAt: IsNull() },
     });
 
     const isNew = !user;
@@ -77,10 +77,10 @@ export class AuthService {
   }
 
   async refresh(userId: string, rawToken: string) {
-    const tokens = await this.tokenRepo.find({ where: { userId } });
+    const storedTokens = await this.tokenRepo.find({ where: { userId } });
     let matched: RefreshToken | null = null;
 
-    for (const t of tokens) {
+    for (const t of storedTokens) {
       if (await bcrypt.compare(rawToken, t.tokenHash)) {
         matched = t;
         break;
@@ -95,9 +95,9 @@ export class AuthService {
     if (!user) throw new NotFoundException('User not found');
 
     await this.tokenRepo.update(matched.id, { revokedAt: new Date() });
-    const tokens = await this.generateTokens(user);
-    await this.saveRefreshToken(userId, tokens.refreshToken);
-    return tokens;
+    const newTokens = await this.generateTokens(user);
+    await this.saveRefreshToken(userId, newTokens.refreshToken);
+    return newTokens;
   }
 
   async logout(userId: string, rawToken: string): Promise<void> {

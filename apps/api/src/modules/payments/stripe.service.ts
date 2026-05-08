@@ -36,8 +36,9 @@ export class StripeService {
   /* ─── Customer ────────────────────────────────────────────────────────── */
 
   async createOrRetrieveCustomer(phone: string, name?: string): Promise<Stripe.Customer> {
-    const list = await this.stripe.customers.list({ phone, limit: 1 });
-    if (list.data.length) return list.data[0];
+    const list = await this.stripe.customers.list({ limit: 100 });
+    const existing = list.data.find((c) => c.phone === phone);
+    if (existing) return existing;
 
     return this.stripe.customers.create({
       phone,

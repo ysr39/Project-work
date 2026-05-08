@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { RedisModule } from '@nestjs-modules/ioredis';
 
 import { validationSchema } from './config/validation.schema';
 import databaseConfig from './config/database.config';
@@ -38,10 +39,20 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
       useFactory: () => ({
         throttlers: [
           {
-            ttl: parseInt(process.env.THROTTLE_TTL) * 1000 || 60000,
-            limit: parseInt(process.env.THROTTLE_LIMIT) || 100,
+            ttl: parseInt(process.env.THROTTLE_TTL ?? '60') * 1000 || 60000,
+            limit: parseInt(process.env.THROTTLE_LIMIT ?? '100') || 100,
           },
         ],
+      }),
+    }),
+    RedisModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'single' as const,
+        url: `redis://${config.get('REDIS_HOST') ?? 'localhost'}:${config.get('REDIS_PORT') ?? 6379}`,
+        options: {
+          password: config.get('REDIS_PASSWORD') || undefined,
+        },
       }),
     }),
     DatabaseModule,

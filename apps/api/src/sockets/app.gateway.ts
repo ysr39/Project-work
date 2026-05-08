@@ -204,9 +204,9 @@ export class AppGateway
       tripId:       payload.tripId,
       driverId:     user.sub,
       driverName:   (driverProfile as any)?.user?.fullName ?? '',
-      vehicleMake:  driverProfile?.vehicle?.make ?? '',
-      vehicleModel: driverProfile?.vehicle?.model ?? '',
-      plateNumber:  driverProfile?.vehicle?.plateNumber ?? '',
+      vehicleMake:  driverProfile?.vehicles?.[0]?.make ?? '',
+      vehicleModel: driverProfile?.vehicles?.[0]?.model ?? '',
+      plateNumber:  driverProfile?.vehicles?.[0]?.plateNumber ?? '',
       etaMinutes:   5,   // TODO: calculate from live location
       driverLat:    0,
       driverLng:    0,

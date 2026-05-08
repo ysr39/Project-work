@@ -110,7 +110,7 @@ export class TripsService {
 
     const timestampField = this.fsm.getTimestampField(dto.status);
     const update: Partial<Trip> = { status: dto.status };
-    if (timestampField) update[timestampField] = new Date();
+    if (timestampField) (update as any)[timestampField] = new Date();
     if (dto.status === TripStatus.CANCELLED) {
       update.cancelledBy = actorId;
       update.cancellationReason = dto.cancellationReason;

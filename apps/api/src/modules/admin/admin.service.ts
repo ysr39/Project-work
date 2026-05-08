@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 
 import { User } from '../users/entities/user.entity';
 import { Trip } from '../trips/entities/trip.entity';
@@ -33,7 +33,7 @@ export class AdminService {
       completedToday,
       onlineDrivers,
     ] = await Promise.all([
-      this.userRepo.count({ where: { deletedAt: null } }),
+      this.userRepo.count({ where: { deletedAt: IsNull() } }),
       this.driverRepo.count(),
       this.tripRepo.count({
         where: [

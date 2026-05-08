@@ -20,7 +20,7 @@ async function bootstrap() {
   app.use(compression());
 
   app.enableCors({
-    origin: [config.get('FRONTEND_URL'), config.get('ADMIN_URL')],
+    origin: [config.get('FRONTEND_URL') ?? '', config.get('ADMIN_URL') ?? ''],
     credentials: true,
   });
 

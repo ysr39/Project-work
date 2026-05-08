@@ -35,7 +35,7 @@ export class TripEventsService {
   /** Broadcast match confirmation to the trip room (all parties) */
   broadcastTripMatched(payload: TripMatchedPayload): void {
     this.server?.to(ROOMS.trip(payload.tripId)).emit(SERVER_EVENTS.TRIP_MATCHED, payload);
-    this._adminUpdate('trip_matched', payload.tripId, payload.driverId, payload);
+    this._adminUpdate('trip_matched', payload.tripId, payload.driverId, payload as unknown as Record<string, unknown>);
   }
 
   /** Broadcast any FSM status change to the trip room */
@@ -52,13 +52,13 @@ export class TripEventsService {
   /** Broadcast trip completion to the trip room */
   broadcastTripCompleted(payload: TripCompletedPayload): void {
     this.server?.to(ROOMS.trip(payload.tripId)).emit(SERVER_EVENTS.TRIP_COMPLETED, payload);
-    this._adminUpdate('trip_completed', payload.tripId, undefined, payload);
+    this._adminUpdate('trip_completed', payload.tripId, undefined, payload as unknown as Record<string, unknown>);
   }
 
   /** Broadcast trip cancellation to the trip room */
   broadcastTripCancelled(payload: TripCancelledPayload): void {
     this.server?.to(ROOMS.trip(payload.tripId)).emit(SERVER_EVENTS.TRIP_CANCELLED, payload);
-    this._adminUpdate('trip_cancelled', payload.tripId, undefined, payload);
+    this._adminUpdate('trip_cancelled', payload.tripId, undefined, payload as unknown as Record<string, unknown>);
   }
 
   /** Inform a specific rider that no driver was found */

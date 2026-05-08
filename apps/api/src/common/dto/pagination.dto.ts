@@ -30,7 +30,7 @@ export function paginate<T>(data: T[], total: number, dto: PaginationDto) {
       total,
       page: dto.page,
       limit: dto.limit,
-      totalPages: Math.ceil(total / dto.limit),
+      totalPages: Math.ceil(total / (dto.limit ?? 20)),
     },
   };
 }

@@ -3,7 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { UserStatus } from '../../../common/constants/roles.enum';
 
@@ -28,7 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   async validate(payload: JwtPayload) {
     const user = await this.userRepo.findOne({
-      where: { id: payload.sub, deletedAt: null },
+      where: { id: payload.sub, deletedAt: IsNull() },
     });
     if (!user || user.status === UserStatus.BANNED || user.status === UserStatus.SUSPENDED) {
       throw new UnauthorizedException('Account is not active');

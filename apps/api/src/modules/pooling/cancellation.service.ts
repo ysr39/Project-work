@@ -140,10 +140,10 @@ export class CancellationService {
     // Return trip to SEARCHING — riders keep their seats, driver is unassigned
     await this.tripRepo.update(tripId, {
       status: TripStatus.SEARCHING,
-      driverId: null,
-      vehicleId: null,
-      matchedAt: null,
-    });
+      driverId: undefined,
+      vehicleId: undefined,
+      matchedAt: undefined,
+    } as any);
 
     // Full refund for all captured payments (driver's fault)
     const passengers = trip.passengers ?? [];
@@ -191,7 +191,7 @@ export class CancellationService {
     const newStops = optimized.stops.map((s, idx) => ({
       tripId,
       tripPassengerId: s.passengerId,
-      stopType: s.kind,
+      stopType: s.kind as any,
       address: s.address,
       lat: s.location.lat,
       lng: s.location.lng,

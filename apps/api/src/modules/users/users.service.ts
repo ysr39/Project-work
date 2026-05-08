@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 
 import { User } from './entities/user.entity';
 import { RiderProfile } from './entities/rider-profile.entity';
@@ -16,13 +16,13 @@ export class UsersService {
   ) {}
 
   async findById(id: string): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { id, deletedAt: null } });
+    const user = await this.userRepo.findOne({ where: { id, deletedAt: IsNull() } });
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
   async findByPhone(phone: string): Promise<User | null> {
-    return this.userRepo.findOne({ where: { phone, deletedAt: null } });
+    return this.userRepo.findOne({ where: { phone, deletedAt: IsNull() } });
   }
 
   async getProfile(userId: string) {
@@ -58,7 +58,7 @@ export class UsersService {
 
   async findAll(dto: PaginationDto) {
     const [data, total] = await this.userRepo.findAndCount({
-      where: { deletedAt: null },
+      where: { deletedAt: IsNull() },
       skip: dto.skip,
       take: dto.limit,
       order: { createdAt: 'DESC' },

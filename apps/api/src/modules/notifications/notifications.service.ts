@@ -12,23 +12,33 @@ export interface PushPayload {
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
-  private firebaseApp: admin.app.App;
+  private firebaseApp: admin.app.App | undefined;
 
   constructor(private readonly config: ConfigService) {
-    if (!admin.apps.length) {
-      this.firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: config.get('FIREBASE_PROJECT_ID'),
-          privateKey: config.get<string>('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n'),
-          clientEmail: config.get('FIREBASE_CLIENT_EMAIL'),
-        }),
-      });
-    } else {
-      this.firebaseApp = admin.app();
+    const projectId = config.get<string>('FIREBASE_PROJECT_ID') ?? '';
+    const privateKey = (config.get<string>('FIREBASE_PRIVATE_KEY') ?? '').replace(/\\n/g, '\n');
+    const clientEmail = config.get<string>('FIREBASE_CLIENT_EMAIL') ?? '';
+
+    if (projectId === 'placeholder' || !privateKey || !clientEmail) {
+      this.logger.warn('Firebase not configured — push notifications disabled');
+      return;
+    }
+
+    try {
+      if (!admin.apps.length) {
+        this.firebaseApp = admin.initializeApp({
+          credential: admin.credential.cert({ projectId, privateKey, clientEmail }),
+        });
+      } else {
+        this.firebaseApp = admin.app();
+      }
+    } catch (err) {
+      this.logger.warn(`Firebase init failed — push notifications disabled: ${(err as Error).message}`);
     }
   }
 
   async sendPush(payload: PushPayload): Promise<void> {
+    if (!this.firebaseApp) return;
     try {
       await this.firebaseApp.messaging().send({
         token: payload.token,
@@ -43,7 +53,7 @@ export class NotificationsService {
   }
 
   async sendMulticast(tokens: string[], title: string, body: string, data?: Record<string, string>) {
-    if (!tokens.length) return;
+    if (!tokens.length || !this.firebaseApp) return;
     try {
       await this.firebaseApp.messaging().sendEachForMulticast({
         tokens,

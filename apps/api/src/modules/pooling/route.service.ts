@@ -19,7 +19,7 @@ export class RouteService {
   private readonly apiKey: string;
 
   constructor(private readonly config: ConfigService) {
-    this.apiKey = config.get<string>('GOOGLE_MAPS_API_KEY');
+    this.apiKey = config.get<string>('GOOGLE_MAPS_API_KEY') ?? '';
   }
 
   async getRoute(origin: LatLng, destination: LatLng, waypoints: LatLng[] = []): Promise<RouteResult> {
